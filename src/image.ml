@@ -16,12 +16,15 @@ let load_ppm ~filename =
     match lines with
     | "P3" :: rest -> rest
     | (_ : string list) ->
-      raise_s [%message "Invalid magic number, plain PPM file should begin with P3"]
+      raise_s
+        [%message
+          "Invalid magic number, plain PPM file should begin with P3"]
   in
   let parse_wh line =
     match String.split ~on:' ' line with
     | [ w; h ] -> Int.of_string w, Int.of_string h
-    | (_ : string list) -> raise_s [%message "invalid dimensions line" (line : string)]
+    | (_ : string list) ->
+      raise_s [%message "invalid dimensions line" (line : string)]
   in
   let (width, height), lines =
     match lines with
@@ -42,14 +45,16 @@ let load_ppm ~filename =
     String.strip line
     |> String.split ~on:' '
     |> List.iter ~f:(fun channel ->
-      let channel_val = Int.of_string channel in
-      if channel_val > max_val || channel_val < 0
-      then
-        raise_s
-          [%message
-            "invalid pixel color value" (channel_val : int) (max_val : int)];
-      flat_image.(!idx) <- channel_val;
-      idx := !idx + 1));
+         let channel_val = Int.of_string channel in
+         if channel_val > max_val || channel_val < 0
+         then
+           raise_s
+             [%message
+               "invalid pixel color value"
+                 (channel_val : int)
+                 (max_val : int)];
+         flat_image.(!idx) <- channel_val;
+         idx := !idx + 1));
   if !idx < Array.length flat_image
   then raise_s [%message "Reached end of file before reading all pixels"];
   let image =
@@ -67,8 +72,15 @@ let save_ppm t ~filename =
     let lines = [ "P3"; dimensions; Int.to_string t.max_val ] in
     Out_channel.output_lines out lines;
     Array.iteri t.image ~f:(fun idx ((r, g, b) as pixel) ->
-      if r < 0 || r > t.max_val || g < 0 || g > t.max_val || b < 0 || b > t.max_val
-      then raise_s [%message "invalid pixel value in output image" (pixel : Pixel.t)];
+      if r < 0
+         || r > t.max_val
+         || g < 0
+         || g > t.max_val
+         || b < 0
+         || b > t.max_val
+      then
+        raise_s
+          [%message "invalid pixel value in output image" (pixel : Pixel.t)];
       let sep =
         match idx with
         | 0 -> ""
@@ -82,10 +94,14 @@ let save_ppm t ~filename =
 let boundary_check ?(for_slice = false) t ~x ~y =
   if x < 0 || x > t.width || ((not for_slice) && x = t.width)
   then
-    raise_s [%message "x-coordinate outside the image" (x : int) ~width:(t.width : int)];
+    raise_s
+      [%message
+        "x-coordinate outside the image" (x : int) ~width:(t.width : int)];
   if y < 0 || y > t.height || ((not for_slice) && y = t.height)
   then
-    raise_s [%message "y-coordinate outside the image" (y : int) ~height:(t.height : int)];
+    raise_s
+      [%message
+        "y-coordinate outside the image" (y : int) ~height:(t.height : int)];
   ()
 ;;
 
@@ -113,14 +129,20 @@ let slice t ~x_start ~x_end ~y_start ~y_end =
   boundary_check t ~x:x_start ~y:y_start ~for_slice:true;
   boundary_check t ~x:x_end ~y:y_end ~for_slice:true;
   if x_start > x_end
-  then raise_s [%message "x_start must be <= x_end" (x_start : int) (x_end : int)];
+  then
+    raise_s
+      [%message "x_start must be <= x_end" (x_start : int) (x_end : int)];
   if y_start > y_end
-  then raise_s [%message "y_start must be <= y_end" (y_start : int) (y_end : int)];
+  then
+    raise_s
+      [%message "y_start must be <= y_end" (y_start : int) (y_end : int)];
   let width = x_end - x_start in
   let height = y_end - y_start in
   let start_idx = xy_to_idx t ~x:x_start ~y:y_start in
   let i_to_slice_idx i = start_idx + (i / width * t.width) + (i % width) in
-  let image = Array.init (width * height) ~f:(fun i -> t.image.(i_to_slice_idx i)) in
+  let image =
+    Array.init (width * height) ~f:(fun i -> t.image.(i_to_slice_idx i))
+  in
   { image; width; height; max_val = t.max_val }
 ;;
 
@@ -133,7 +155,11 @@ let mean_pixel t =
 ;;
 
 let copy t =
-  { image = Array.copy t.image; width = t.width; height = t.height; max_val = t.max_val }
+  { image = Array.copy t.image
+  ; width = t.width
+  ; height = t.height
+  ; max_val = t.max_val
+  }
 ;;
 
 let map t ~(f : Pixel.t -> Pixel.t) =
@@ -166,7 +192,11 @@ let make ?(max_val = 255) ~width ~height pixel =
         "Invalid image dimensions: width and height must be positive"
           (width : int)
           (height : int)];
-  { image = Array.create ~len:(width * height) pixel; width; height; max_val }
+  { image = Array.create ~len:(width * height) pixel
+  ; width
+  ; height
+  ; max_val
+  }
 ;;
 
 let simple_test data ~f =
@@ -291,9 +321,15 @@ let%expect_test "get and set" =
 0 0 50000 50000 0 0|} in
   simple_test data ~f:(fun filename ->
     let image = load_ppm ~filename in
-    [%test_result: int * int * int] (get image ~x:0 ~y:0) ~expect:(50000, 0, 0);
-    [%test_result: int * int * int] (get image ~x:1 ~y:0) ~expect:(0, 50000, 0);
-    [%test_result: int * int * int] (get image ~x:0 ~y:1) ~expect:(0, 0, 50000);
+    [%test_result: int * int * int]
+      (get image ~x:0 ~y:0)
+      ~expect:(50000, 0, 0);
+    [%test_result: int * int * int]
+      (get image ~x:1 ~y:0)
+      ~expect:(0, 50000, 0);
+    [%test_result: int * int * int]
+      (get image ~x:0 ~y:1)
+      ~expect:(0, 0, 50000);
     Expect_test_helpers_base.require_does_raise [%here] (fun () ->
       get image ~x:(-1) ~y:0);
     [%expect
@@ -304,9 +340,15 @@ let%expect_test "get and set" =
     set image ~x:0 ~y:0 (40000, 0, 0);
     set image ~x:1 ~y:0 (0, 40000, 0);
     set image ~x:0 ~y:1 (0, 0, 40000);
-    [%test_result: int * int * int] (get image ~x:0 ~y:0) ~expect:(40000, 0, 0);
-    [%test_result: int * int * int] (get image ~x:1 ~y:0) ~expect:(0, 40000, 0);
-    [%test_result: int * int * int] (get image ~x:0 ~y:1) ~expect:(0, 0, 40000);
+    [%test_result: int * int * int]
+      (get image ~x:0 ~y:0)
+      ~expect:(40000, 0, 0);
+    [%test_result: int * int * int]
+      (get image ~x:1 ~y:0)
+      ~expect:(0, 40000, 0);
+    [%test_result: int * int * int]
+      (get image ~x:0 ~y:1)
+      ~expect:(0, 0, 40000);
     Expect_test_helpers_base.require_does_raise [%here] (fun () ->
       set image ~y:100 ~x:0 (40000, 0, 0));
     [%expect
@@ -429,14 +471,16 @@ let%expect_test "fold and foldi" =
     let image = load_ppm ~filename in
     print_s
       [%sexp
-        (fold ~init:Pixel.zero image ~f:(fun acc pixel -> Pixel.(acc + pixel))
-         : Pixel.t)];
+        (fold ~init:Pixel.zero image ~f:(fun acc pixel ->
+           Pixel.(acc + pixel))
+          : Pixel.t)];
     [%expect {|
       (100000 50000 50000) |}];
     print_s
       [%sexp
-        (foldi ~init:(0, 0) image ~f:(fun ~x ~y (xsum, ysum) _ -> xsum + x, ysum + y)
-         : int * int)];
+        (foldi ~init:(0, 0) image ~f:(fun ~x ~y (xsum, ysum) _ ->
+           xsum + x, ysum + y)
+          : int * int)];
     [%expect {|
       (2 2) |}];
     return ())
